@@ -1,22 +1,33 @@
 package Tetris;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.BoxLayout;
-import java.awt.GridBagLayout;
-import java.awt.Dimension;
-import java.awt.BorderLayout;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+import static Tetris.MyElements.*;
+import static Tetris.MyElements.JLSZT_offsetTable;
+
 /***
  * Author: Bo-Yu Huang
  * Date: 6/4/20
  * The main compiling program using JFrame to contain multiple classes that extend JPanel
+ *
+ * Date: 6/20 add mouseClicked and mouseScroll event functions
  */
-public class Main extends JFrame {
+public class Main extends JFrame implements MouseListener, MouseWheelListener {
+    public static void main(String[] args) {
+        var game = new Main();
+        game.setVisible(true);
+    }
 
-    public static void main(String[] args) { new Main();}
-        Main() {
+    JPanel winArea;
+    PlayGround playBoard;
+    JPanel rightBox;
+    NextShapeBox nextBox;
+    ScoreBoard scoreBoard;
+    QuitButton qButtom;
+
+        public Main() {
             super("Tetris");
             this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -25,41 +36,40 @@ public class Main extends JFrame {
                     System.exit(0);
                 }
             });
-            
+            addMouseListener(this);
+            addMouseWheelListener(this);
+
             int W = 501, H = 601;
             setSize(W, H); // 500, 600
 
-            JPanel winArea = new JPanel(new GridBagLayout());
+            winArea = new JPanel(new GridBagLayout());
+            nextBox = new NextShapeBox();
+            playBoard = new PlayGround(this);
+            rightBox = new JPanel();
+            scoreBoard = new ScoreBoard();
+            qButtom = new QuitButton(this);
+
             winArea.setLayout(new BoxLayout(winArea, BoxLayout.X_AXIS));
-            winArea.setPreferredSize(new Dimension(W-1,H-1));
-
-            PlayGround playBoard = new PlayGround();
-            playBoard.setPreferredSize(new Dimension((int)(W*(float)250/W), (int)(H*(float)450/H)));
-            winArea.add(playBoard, BorderLayout.WEST);
-
-            JPanel rightBox = new JPanel(new GridBagLayout());
             rightBox.setLayout(new BoxLayout(rightBox, BoxLayout.Y_AXIS));
-            rightBox.setPreferredSize(new Dimension((int)(W*(float)150/W),(int)(H*(float)400/H)));
-            winArea.add(rightBox,BorderLayout.EAST);
 
-            NextShapeBox nextBox = new NextShapeBox();
-            nextBox.setPreferredSize(new Dimension((int)(W*(float)150/W),(int)(H*(float)100/H)));
+            winArea.setPreferredSize(new Dimension(W-1,H-1));
+            playBoard.setPreferredSize(new Dimension((int)(W*(float)300/W), (int)(H*(float)600/H)));
+            rightBox.setPreferredSize(new Dimension((int)(W*(float)200/W),(int)(H*(float)600/H)));
+            nextBox.setPreferredSize(new Dimension((int)(W*(float)200/W),(int)(H*(float)150/H)));
+            scoreBoard.setPreferredSize(new Dimension((int)(W*(float)200/W),(int)(H*(float)300/H)));
+            qButtom.setPreferredSize(new Dimension((int)(W*(float)200/W),(int)(H*(float)150/H)));
+
             rightBox.add(nextBox);
-
-            ScoreBoard scoreBoard = new ScoreBoard();
-            scoreBoard.setPreferredSize(new Dimension((int)(W*(float)150/W),(int)(H*(float)150/H)));
             rightBox.add(scoreBoard);
-
-            QuitButton qButtom = new QuitButton();
-            qButtom.setPreferredSize(new Dimension((int)(W*(float)100/W),(int)(H*(float)50/H)));
             rightBox.add(qButtom);
 
+            winArea.add(playBoard, BorderLayout.WEST);
+            winArea.add(rightBox,BorderLayout.EAST);
             this.add(winArea);
 
             //check the border of each panel
-            //ZPanels.setBorder(BorderFactory.createLineBorder(Color.blue,10));
             //winArea.setBorder(BorderFactory.createLineBorder(Color.yellow,2));
-            //playBoard.setBorder(BorderFactory.createLineBorder(Color.MAGENTA,2));
+            //playBoard.setBorder(BorderFactory.createLineBorder(Color.black,2));
             //rightBox.setBorder(BorderFactory.createLineBorder(Color.green,2));
             //nextBox.setBorder(BorderFactory.createLineBorder(Color.red,2));
             //scoreBoard.setBorder(BorderFactory.createLineBorder(Color.red,2));
@@ -71,4 +81,73 @@ public class Main extends JFrame {
             setVisible(true);
         }
 
+    @Override
+    public void mouseClicked(MouseEvent e) {
+            if (e.getButton() == 1)
+                playBoard.tryMove(playBoard.element, playBoard.curX-1,playBoard.curY, 0);
+                
+            if (e.getButton() == 2) // scroll click event
+                System.out.println("ScrollButton clicked!");
+            
+            if (e.getButton() == 3)
+                playBoard.tryMove(playBoard.element, playBoard.curX+1,playBoard.curY, 0);
+    }
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+            int W = getWidth();
+            int mx = e.getX();
+            if (mx > (int)(W*(float)300/500)-3) {
+                // avoid calling when cursor is in the main area (pause activate)
+                int type = e.getWheelRotation();
+                if (type > 0)
+                    // toward user, CCW
+                    if (playBoard.element.shape() == 7)
+                        playBoard.tryMove(playBoard.element.CCW_turn(),playBoard.curX,playBoard.curY, -1);
+                    else if (playBoard.element.shape() == 6) {
+                        int next = (pos - 1 + 4) % 4;
+                        for (int i = 0; i < 5; i++) {
+                            if (playBoard.tryMove(playBoard.element.CCW_turn(), playBoard.curX + I_offsetTable[pos][i][0] - I_offsetTable[next][i][0],
+                                    playBoard.curY + I_offsetTable[pos][i][1] - I_offsetTable[next][i][1], -1))
+                                break;
+                        }
+                    }
+                    else {
+                        int next = (pos - 1 + 4) % 4;
+                        for (int i = 0; i < 5; i++) {
+                            if(playBoard.tryMove(playBoard.element.CCW_turn(), playBoard.curX + JLSZT_offsetTable[pos][i][0] - JLSZT_offsetTable[next][i][0],
+                                    playBoard.curY + JLSZT_offsetTable[pos][i][1] - JLSZT_offsetTable[next][i][1], -1))
+                                break;
+                        }
+                    }
+                else {
+                    // away user, CW
+                    if (playBoard.element.shape() == 7)
+                        playBoard.tryMove(playBoard.element.CW_turn(),playBoard.curX,playBoard.curY, 1);
+                    else if (playBoard.element.shape() == 6) {
+                        int next = (pos + 1 + 4) % 4;
+                        for (int i = 0; i < 5; i++) {
+                            if (playBoard.tryMove(playBoard.element.CW_turn(), playBoard.curX + I_offsetTable[pos][i][0] - I_offsetTable[next][i][0],
+                                    playBoard.curY + I_offsetTable[pos][i][1] - I_offsetTable[next][i][1], 1))
+                                break;
+                        }
+                    }
+                    else{
+                        int next = (pos + 1 + 4) % 4;
+                        for (int i = 0; i < 5; i++) {
+                            if(playBoard.tryMove(playBoard.element.CW_turn(), playBoard.curX + JLSZT_offsetTable[pos][i][0] - JLSZT_offsetTable[next][i][0],
+                                    playBoard.curY + JLSZT_offsetTable[pos][i][1] - JLSZT_offsetTable[next][i][1], 1))
+                                break;
+                        }
+                    }
+                }
+            }
+    }
+    @Override
+    public void mousePressed(MouseEvent e) {   }
+    @Override
+    public void mouseReleased(MouseEvent e) {   }
+    @Override
+    public void mouseEntered(MouseEvent e) {   }
+    @Override
+    public void mouseExited(MouseEvent e) {    }
 }

@@ -4,6 +4,7 @@ import javax.swing.JPanel;
 import java.awt.Graphics;
 import java.awt.Dimension;
 import java.awt.Font;
+
 /***
  * Author: Bo-Yu Huang
  * Date: 6/5/20
@@ -46,7 +47,7 @@ public class ScoreBoard extends JPanel {
         P2 = new Point(P1.X, iY(rHeight/2-130));
         P3 = new Point(P1.X, iY(rHeight/2-205));
 
-        Font style = new Font ("TimesRoman", Font.BOLD + Font.PLAIN, Math.min(maxX,maxY)/10);
+        Font style = new Font ("TimesRoman", Font.BOLD + Font.PLAIN, Math.round(30/pixelSize));
         g.setFont(style);
         g.drawString(
                 "Level:       "+level, P1.X, P1.Y);

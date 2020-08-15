@@ -1,36 +1,39 @@
 package Tetris;
 
-import javax.swing.JPanel;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.BorderFactory;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import java.awt.Graphics;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+
 /***
  * Author: Bo-Yu Huang
  * Date: 6/5/20
  * A class extends JPanel for QUIT button to close the window
+ *
+ * Date: 6/16 make timer static variable and add stop timer in button click event
+ * Date: 6/20 add mouse event to prevent double calling and call parent main function
  */
-public class QuitButton extends JPanel{
-    QuitButton(){
+public class QuitButton extends JPanel implements MouseWheelListener, MouseListener {
+    QuitButton(Main Parent){
         /***
          * P1----------
          * |          |
          * |          |
          * | ---------P2
          ***/
+        parent = Parent;
         add(qButtom);
+        addMouseListener(this);
+        addMouseWheelListener(this);
         qButtom.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JComponent comp = (JComponent) e.getSource();
                 Window win = SwingUtilities.getWindowAncestor(comp);
+                PlayGround.stopTimer();
                 win.dispose();
             }
         });
@@ -41,6 +44,7 @@ public class QuitButton extends JPanel{
     float pixelSize, rWidth = 150.0F, rHeight = 100.0F;
     int maxX, maxY;
     JButton qButtom = new JButton("QUIT");
+    Main parent;
 
     void initgr() {
         Dimension d = getSize();
@@ -63,11 +67,25 @@ public class QuitButton extends JPanel{
         qButtom.setSize(P2.X-P1.X,P2.Y-P1.Y);
         qButtom.setForeground(Color.black);
         qButtom.setBackground(Color.white);
-        qButtom.setFont(new Font ("TimesRoman", Font.BOLD + Font.PLAIN, Math.min(maxX,maxY)/4));
+        qButtom.setFont(new Font ("TimesRoman", Font.BOLD + Font.PLAIN, Math.round(15/pixelSize)));
         qButtom.setBorder(BorderFactory.createLineBorder(Color.black, 3));
         qButtom.setVisible(true);
-        /*System.out.println("QuitButtom");
-        System.out.println("Width: "+ (P2.X-P1.X)+" Height: "+ (P2.Y-P1.Y));
-        System.out.println("maxX:"+ maxX + "maxY: "+ maxY);*/
     }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        // void function in case double calling in Mousescrolling when cursor is in the "Quit" button area
+    }
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        parent.mouseClicked(e);
+    }
+    @Override
+    public void mousePressed(MouseEvent e) { }
+    @Override
+    public void mouseReleased(MouseEvent e){ }
+    @Override
+    public void mouseEntered(MouseEvent e) { }
+    @Override
+    public void mouseExited(MouseEvent e) { }
 }
