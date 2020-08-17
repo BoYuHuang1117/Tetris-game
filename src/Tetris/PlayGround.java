@@ -3,6 +3,7 @@ package Tetris;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Random;
 
 import static Tetris.MyElements.JLSZT_offsetTable;
 import static Tetris.MyElements.I_offsetTable;
@@ -18,19 +19,26 @@ import static Tetris.MyElements.pos;
  * Date: 6/18 add drawing, falling and boundary check
  * Date: 6/20 add mouseScroll event function
  * Date: 6/22 add offset table
+ * Date: 7/1 add removeLines function and repaint the score board
+ * Date: 7/6 change several variables to static
  */
 public class PlayGround extends JPanel implements MouseListener, ActionListener, MouseMotionListener, MouseWheelListener{
+    /////////////////////////////////////////////////////////////////
     static Timer timer;
-
-    private final int BOARD_WIDTH = 10;     // 10 px size in width
-    private final int BOARD_HEIGHT = 20;    // 20 px size in height
-    private final int px = 25;              // side length of the square in logical coordinate
-
+    static int FS = 500;
+    static int scoreFactor = 5, nRows = 5, level = 1, lines = 0, scores = 0;
+    static double speedFactor = 0.3;
+    static int BOARD_WIDTH = 10;     // initial 10 px size in width
+    static int BOARD_HEIGHT = 20;    // initial 20 px size in height
+    static int px = 25;              // side length of the square in logical coordinate
+    static boolean settingDone = false;
+    /////////////////////////////////////////////////////////////////
     int xCenter, yCenter;
-    float pixelSize, rWidth = 250.0F, rHeight = 500.0F;
+    float pixelSize, rWidth = (float)BOARD_WIDTH*px, rHeight = (float)BOARD_HEIGHT*px;
     int maxX, maxY;
 
     private boolean pause = false;
+    private boolean change = false;
     private boolean gameOver = false;
     private boolean fallingDone = false;
     public MyElements element;
@@ -40,6 +48,7 @@ public class PlayGround extends JPanel implements MouseListener, ActionListener,
 
     // get nextBox from Parent Main and to set the nextshpae properly
     private NextShapeBox nextShapeBox;
+    private ScoreBoard ScoreBoard;
     // For painting the boundary and the status box
     Point P1;
     Point P2;
@@ -47,7 +56,7 @@ public class PlayGround extends JPanel implements MouseListener, ActionListener,
     Point P4;
 
     PlayGround(Main Parent){
-        /***  10x20 grid
+        /***  BOARD_WIDTHxBOARD_HEIGHT grid
          * P1----------
          * |          |
          * |  P3---   |
@@ -56,10 +65,11 @@ public class PlayGround extends JPanel implements MouseListener, ActionListener,
          * |          |
          * | --------P2
          ***/
-        timer = new Timer(500,this);
-        timer.start();
-        board = new int[BOARD_HEIGHT+1][BOARD_WIDTH+1];
+        timer = new Timer(FS,this);
+        //timer.start();
         nextShapeBox = Parent.nextBox;
+        ScoreBoard = Parent.scoreBoard;
+        board = new int[BOARD_HEIGHT+1][BOARD_WIDTH+1];
         newElement();
         addMouseListener(this);
         addMouseMotionListener(this);
@@ -68,14 +78,20 @@ public class PlayGround extends JPanel implements MouseListener, ActionListener,
     }
 
     void initSize() {
-        Dimension d = getSize();                                // size of PlayGround JPanel
+        Dimension d = getSize();                              // size of PlayGround JPanel
+        rWidth = (float)(BOARD_WIDTH*px); rHeight = (float)(BOARD_HEIGHT*px);
+        leftMost = -(BOARD_WIDTH*px)/2; bottonMost = -(BOARD_HEIGHT*px)/2;
         maxX = d.width - 1; maxY = d.height - 1;
         pixelSize = Math.max(rWidth / maxX, rHeight / maxY);
         xCenter = maxX/2; yCenter = maxY/2;
     }
     private int iX(float x) {return Math.round(xCenter + x / pixelSize);}
     private int iY(float y) {return Math.round(yCenter - y / pixelSize);}
+    float fx(int x) {return (x - xCenter) * pixelSize;}
+    float fy(int y) {return (yCenter - y) * pixelSize;}
     private int getType(int x, int y){ return board[y][x];}
+    public void initializeBoard() {board = new int[BOARD_HEIGHT+1][BOARD_WIDTH+1];}
+    static public void startTimer() {timer.start();}
     static public void stopTimer(){timer.stop();}
 
     @Override
@@ -133,27 +149,73 @@ public class PlayGround extends JPanel implements MouseListener, ActionListener,
         }
     }
 
+    private void changeEle(){
+        int E1 = nextShapeBox.getType();
+        int E2 = element.shape();
+        int E3 = E1;
+        while (E3 == E1 || E3 == E2){
+            System.out.println("try"+E3);
+            E3 = new Random().nextInt(7)+1;  // [0...6]+1
+            element = new MyElements(E3);
+            if (!tryMove(element, curX, curY, 0)){
+                E3 = E1;
+                continue;
+            }
+        }
+        change = true;
+        repaint();
+        scores -= level*scoreFactor; // lose score every time if shape changed once!?
+        if (scores <= 0)
+            scores = 0;
+        ScoreBoard.updateScore();
+    }
+
+    private boolean insidePoly(int mX, int mY){
+        float mx = fx(mX), my = fy(mY);
+
+        //int count = 0;
+        for (int i = 0; i < 4; i++){
+            int x = curX + element.x(i);
+            int y = curY + element.y(i)+1;
+            if (my > y*px+bottonMost || my < (y-1)*px+bottonMost){continue;}
+            if (leftMost+x*px > mx){continue;}
+            else if (leftMost+(x+1)*px > mx){
+                return true;
+            }
+        }
+
+        return false;
+    }
     @Override
     public void mouseMoved(MouseEvent e) {
         int mx = e.getX();
         int my = e.getY();
         if (mx > P1.X && mx < P2.X && my > P1.Y
-                && my < P2.Y && !gameOver) {
+                && my < P2.Y && !gameOver && settingDone) {
             pause = true;
             timer.stop();
             repaint();
+            // point-inside-polygon test
+            if (!change && insidePoly(mx,my)){
+                changeEle();
+            }
+            else if (!insidePoly(mx,my))
+                change = false;
         }
         if((mx< P1.X || mx > P2.X || my < P1.Y
-                || my > P2.Y) && (!gameOver)) {
+                || my > P2.Y) && !gameOver && settingDone) {
             pause = false;
+            change = false;
             timer.start();
             repaint();
         }
+
     }
     @Override
     public void mouseExited(MouseEvent e) {
-        if (!gameOver){
+        if (!gameOver && settingDone){
             pause = false;
+            change = false;
             repaint();
             timer.start();
         }
@@ -163,7 +225,7 @@ public class PlayGround extends JPanel implements MouseListener, ActionListener,
         int mx = e.getX();
         int my = e.getY();
         if((mx< P1.X || mx > P2.X || my < P1.Y
-                || my > P2.Y) && (!gameOver)) {
+                || my > P2.Y) && (!gameOver) && settingDone) {
             if (e.getButton() == 1)
                 tryMove(element, curX-1,curY,0);
 
@@ -181,7 +243,7 @@ public class PlayGround extends JPanel implements MouseListener, ActionListener,
         int my = e.getY();
         int type = e.getWheelRotation();
         if((mx< P1.X || mx > P2.X || my < P1.Y
-                || my > P2.Y) && (!gameOver)) {
+                || my > P2.Y) && (!gameOver) && settingDone) {
             if (type > 0) {
                 // toward user, CCW
                 if (element.shape() == 7)
@@ -285,8 +347,51 @@ public class PlayGround extends JPanel implements MouseListener, ActionListener,
     }
 
     private void removeLines(){
-        fallingDone = true;
+        // find the full rows
+        int count = 0;
+
+        for (int i = BOARD_HEIGHT-1; i >= 0; i--){
+            boolean lineIsFull = true;
+
+            for (int j = 0; j < BOARD_WIDTH; j++){
+                if (board[i][j] == 0){
+                    lineIsFull = false;
+                    break;
+                }
+            }
+            if (lineIsFull){
+                count++;
+                for (int k = i; k < BOARD_HEIGHT-1;k++){
+                    for (int j = 0; j < BOARD_WIDTH; j++)
+                        board[k][j] = board[k+1][j];
+                }
+            }
+        }
+
+        if (count != 0){
+            fallingDone = true;
+            countLines(count);
+            element = new MyElements(0);
+            repaint();
+        }
     }
+    public void countLines(int n){
+        lines += n;
+        if (lines >= nRows) {
+            System.out.println("level up");
+            speedUP();
+        }
+        countScore();
+        ScoreBoard.updateScore();
+    }
+
+    public void speedUP(){
+        lines = 0;
+        level += 1;
+        timer.setInitialDelay(Math.round(FS*(1+(float)(level*speedFactor))));
+        System.out.println(Math.round(FS*(1+(float)(level*speedFactor))));
+    }
+    public void countScore() { scores += level*scoreFactor; }
 
     // public function for other class to access
     public boolean tryMove(MyElements newPiece, int newX, int newY, int moveType) {

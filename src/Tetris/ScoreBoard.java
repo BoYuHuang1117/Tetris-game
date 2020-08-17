@@ -4,11 +4,16 @@ import javax.swing.JPanel;
 import java.awt.Graphics;
 import java.awt.Dimension;
 import java.awt.Font;
+import static Tetris.PlayGround.level;
+import static Tetris.PlayGround.lines;
+import static Tetris.PlayGround.scores;
 
 /***
  * Author: Bo-Yu Huang
  * Date: 6/5/20
  * A class extends JPanel for demonstrating three strings on the right
+ *
+ * Date: 6/27 add multiple static integer members
  */
 public class ScoreBoard extends JPanel {
     ScoreBoard(){
@@ -26,8 +31,6 @@ public class ScoreBoard extends JPanel {
     int xCenter, yCenter;
     float pixelSize, rWidth = 200.0F, rHeight = 300.0F;
     int maxX, maxY;
-
-    public int level = 1, lines = 0, scores = 0;
 
     void initgr() {
         Dimension d = getSize();
@@ -59,4 +62,5 @@ public class ScoreBoard extends JPanel {
         System.out.println("Width: "+ P1.X+" Height: "+ (P2.Y-P1.Y));
         System.out.println("maxX:"+ maxX + "maxY: "+ maxY);*/
     }
+    public void updateScore(){ repaint();}
 }

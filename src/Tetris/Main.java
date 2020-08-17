@@ -6,6 +6,7 @@ import java.awt.event.*;
 
 import static Tetris.MyElements.*;
 import static Tetris.MyElements.JLSZT_offsetTable;
+import static Tetris.PlayGround.*;
 
 /***
  * Author: Bo-Yu Huang
@@ -13,6 +14,7 @@ import static Tetris.MyElements.JLSZT_offsetTable;
  * The main compiling program using JFrame to contain multiple classes that extend JPanel
  *
  * Date: 6/20 add mouseClicked and mouseScroll event functions
+ * Date: 7/6 add changeWindowSize function and parameter JPanel
  */
 public class Main extends JFrame implements MouseListener, MouseWheelListener {
     public static void main(String[] args) {
@@ -26,6 +28,7 @@ public class Main extends JFrame implements MouseListener, MouseWheelListener {
     NextShapeBox nextBox;
     ScoreBoard scoreBoard;
     QuitButton qButtom;
+    ParaBox paraBox;
 
         public Main() {
             super("Tetris");
@@ -39,14 +42,14 @@ public class Main extends JFrame implements MouseListener, MouseWheelListener {
             addMouseListener(this);
             addMouseWheelListener(this);
 
-            int W = 501, H = 601;
+            int W = 751, H = 601;
             setSize(W, H); // 500, 600
 
             winArea = new JPanel(new GridBagLayout());
             nextBox = new NextShapeBox();
+            scoreBoard = new ScoreBoard();
             playBoard = new PlayGround(this);
             rightBox = new JPanel();
-            scoreBoard = new ScoreBoard();
             qButtom = new QuitButton(this);
 
             winArea.setLayout(new BoxLayout(winArea, BoxLayout.X_AXIS));
@@ -65,38 +68,43 @@ public class Main extends JFrame implements MouseListener, MouseWheelListener {
 
             winArea.add(playBoard, BorderLayout.WEST);
             winArea.add(rightBox,BorderLayout.EAST);
+
+            paraBox = new ParaBox(this);
+            paraBox.setPreferredSize(new Dimension((int)(W*(float)250/W),(int)(H*(float)600/H)));
+            winArea.add(paraBox,BorderLayout.EAST);
+
             this.add(winArea);
 
             //check the border of each panel
             //winArea.setBorder(BorderFactory.createLineBorder(Color.yellow,2));
             //playBoard.setBorder(BorderFactory.createLineBorder(Color.black,2));
             //rightBox.setBorder(BorderFactory.createLineBorder(Color.green,2));
-            //nextBox.setBorder(BorderFactory.createLineBorder(Color.red,2));
-            //scoreBoard.setBorder(BorderFactory.createLineBorder(Color.red,2));
-            //qButtom.setBorder(BorderFactory.createLineBorder(Color.red,2));
-            //pauseLabel.setBorder(BorderFactory.createLineBorder(Color.red,2));
-            //System.out.println("Window width: "+W+" Window height "+H);
+            //paraBox.setBorder(BorderFactory.createLineBorder(Color.black));
 
             //setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
             setVisible(true);
         }
-
+    public void changeWindowSize(){
+            this.setResizable(true);
+            this.setSize(new Dimension((BOARD_WIDTH*px*3),BOARD_HEIGHT*px));
+            playBoard.initializeBoard();
+    }
     @Override
     public void mouseClicked(MouseEvent e) {
-            if (e.getButton() == 1)
+            if (e.getButton() == 1 && settingDone)
                 playBoard.tryMove(playBoard.element, playBoard.curX-1,playBoard.curY, 0);
                 
-            if (e.getButton() == 2) // scroll click event
+            if (e.getButton() == 2 && settingDone) // scroll click event
                 System.out.println("ScrollButton clicked!");
             
-            if (e.getButton() == 3)
+            if (e.getButton() == 3 && settingDone)
                 playBoard.tryMove(playBoard.element, playBoard.curX+1,playBoard.curY, 0);
     }
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
-            int W = getWidth();
+            int W = playBoard.getWidth();
             int mx = e.getX();
-            if (mx > (int)(W*(float)300/500)-3) {
+            if (mx > W+5 && settingDone) {
                 // avoid calling when cursor is in the main area (pause activate)
                 int type = e.getWheelRotation();
                 if (type > 0)

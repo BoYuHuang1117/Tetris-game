@@ -72,4 +72,6 @@ public class NextShapeBox extends JPanel {
         repaint();
         return type;
     }
+
+    public int getType(){ return nextElement.shape();}
 }
