@@ -25,3 +25,17 @@
 - When the cursor move within the falling piece, the Tetromino will randomly change its type **with penalty** on your score.  
 
 ![gif-change shape](https://user-images.githubusercontent.com/38172621/96476738-38107c00-11fb-11eb-8d46-089d22bebbe0.gif)
+
+## Install instruction
+- Make sure Java is successfully installed which includes Java JDK and compiler.
+[ref link](https://www.digitalocean.com/community/tutorials/how-to-install-java-with-apt-on-ubuntu-22-04)
+```
+java -version
+javac -version
+```
+- Run above commands to check environment setting and availability.
+- cd to src folder, compile and run program.
+```
+javac Tetris/*.java
+java Tetris/Main
+```
